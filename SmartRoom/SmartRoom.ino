@@ -1,55 +1,83 @@
-int MODE = 0; //0 - Light, 1 - RoomExit, 2 - Signalization, 3 - SignalWorkss
+const bool ON = true;
+const bool OFF = false;
 
-const int Lamp = 13;
-const int MovingSensor = 12;
+const int MovingSensor = 2;
+const int RadioA = 3;
+const int RadioB = 4;
+const int RadioC = 5;
+const int Relay1 = 6;
+const int Relay2 = 7;
 
-const int JoystickX = 0;
-const int JoystickY = 0;
-const int ConsoleA = 7;
-const int ConsoleB = 6;
-const int ConsoleC = 5;
-const int ConsoleD = 4;
+int MODE = 2; /*
+  0 - ON --- A
+  1 - WAIT - C
+  2 - OFF -- B
+*/
 
-bool CurrentLight = false;
+bool Rel = false;
 
-
-void setup() {
-  pinMode(ConsoleA, INPUT); // Light ON, OFF
-  pinMode(ConsoleB, INPUT); // Exit from room
-  pinMode(ConsoleC, INPUT); // On signalization
-  pinMode(ConsoleD, INPUT); // Off signalization
-  
+void setup(){
   pinMode(MovingSensor, INPUT);
-  
-  pinMode(Lamp, OUTPUT);
+  pinMode(RadioA, INPUT);
+  pinMode(RadioB, INPUT);
+  pinMode(RadioC, INPUT);
+  pinMode(Relay1, OUTPUT);
+  pinMode(Relay2, OUTPUT);
 
-  digitalWrite(Lamp, CurrentLight);
+  Serial.begin(9600);
 }
 
-void loop() {
+void loop(){
   switch(MODE){
-    case 0: 
-      if(digitalRead(ConsoleC)) MODE = 2; // Signalization
-      if(digitalRead(ConsoleA)) {
-        CurrentLight = !CurrentLight; // Switch light
-        digitalWrite(Lamp, CurrentLight);
+    case 0:
+      // On light
+      SetRelays(ON);
+      if(digitalRead(RadioB)){
+        MODE = 2;
       }
-      if(digitalRead(ConsoleB)) MODE = 1;
-      break;
-    case 1:
-      if(digitalRead(MovingSensor)){
-        digitalWrite(Lamp, CurrentLight);
-        MODE = 0; // HERE
+      if(digitalRead(RadioC)){
+        MODE = 1;
       }
       break;
-    case 2:
-      
+     case 1:
+      // Off light, but waiting to on
+      SetRelays(OFF);
+      if(digitalRead(RadioA) || digitalRead(MovingSensor)){
+        MODE = 0;
+      }
+      if(digitalRead(RadioB)){
+        MODE = 2;
+      }
       break;
-    case 3:
-      
+     case 2:
+      // Off light
+      SetRelays(OFF);
+      if(digitalRead(RadioA)){
+        MODE = 0;
+      }
+      if(digitalRead(RadioC)){
+        MODE = 1;
+      }
       break;
   }
 
-  delay(100); // TEMPORARY
+  if(millis() % 500 == 0){
+    if(MODE == 0) Serial.println("0 - ON - A");
+    if(MODE == 1) Serial.println("1 - WAIT - C");
+    if(MODE == 2) Serial.println("2 - OFF - B");
+  }
 }
+void SetRelays(bool pos){
+  if(Rel != pos){
+    Rel = pos;
+    if(Rel){
+      digitalWrite(Relay1, HIGH);
+      digitalWrite(Relay2, HIGH);
+    } else {
+      digitalWrite(Relay1, LOW);
+      digitalWrite(Relay2, LOW);
+    }
+  }
+}
+//ToDo: Add buzzer
 
